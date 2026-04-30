@@ -6,8 +6,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-import os
 from datetime import datetime
+import os
+import httpx
+
+# Get n8n webhook url from env
+N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL")
 
 # Initialise app
 app = FastAPI(title="Eldritch Inbox")
@@ -29,7 +33,7 @@ async def validate_image_file(file:UploadFile) -> bool:
             detail="Please upload only JPEG, PNG or HEIC files."
         )
     
-    MAX_FILE_SIZE = 2*1024*1024
+    MAX_FILE_SIZE = 2*1024*1024*1024*1024*1024
 
     await file.seek(0)
 
@@ -39,7 +43,7 @@ async def validate_image_file(file:UploadFile) -> bool:
         if file_size > MAX_FILE_SIZE:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail="Please upload an image smaller than 2MB."
+                detail="Please upload an image smaller than 5 MB."
             )
     
     # Reset file position for later use
@@ -52,7 +56,7 @@ async def serve_frontend():
     return FileResponse("static/index.html")
 
 # Image submission endpoint
-@app.post("/submit/")
+@app.post("/submit")
 async def submit_image(
     email: Optional[EmailStr] = Form(...),
     setting_image: UploadFile = File(...) 
@@ -64,16 +68,28 @@ async def submit_image(
     
     await validate_image_file(setting_image)
 
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    image_content = await setting_image.read()
 
-    setting_image_filename = f"{timestamp}_{setting_image.filename}"
-    setting_image_path = os.path.join("uploads",setting_image_filename)
+    # Connecting to n8n webhook 
+    async with httpx.AsyncClient() as client:
+        try:
+            # Prepare the file and data payload
+            files = {"image": (setting_image.filename, image_content, setting_image.content_type)}
+            data = {"email": form_data.email}
 
-    with open(setting_image_path, "wb") as f:
-            content = await setting_image.read()
-            f.write(content)
-    
-    return {
-        "email": form_data.model_dump(),
-        "setting_image_path": setting_image_path
-    }
+            response = await client.post(N8N_WEBHOOK_URL, files=files, data=data, timeout=60.0)
+            response.raise_for_status()
+            
+            result = response.json()
+            
+            return {
+                "status": "success",
+                "prompt": result.get("prompt", "No prompt generated"),
+                "extract": result.get("extract", "No subject generated")
+            }
+        except httpx.TimeoutException:
+            raise HTTPException(status_code=504, detail="The system took too long to respond.")
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=500, detail=f"n8n error: {e}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Connection error: {str(e)}")

@@ -476,7 +476,7 @@
   <div class="card">
     <form
       id="upload-form"
-      action="/submit/"
+      action="/submit"
       method="POST"
       enctype="multipart/form-data"
     >
@@ -610,7 +610,7 @@
     setLoading(true);
 
     try {
-      const res = await fetch('/submit/', { method: 'POST', body: data });
+      const res = await fetch('/submit', { method: 'POST', body: data });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Something went wrong.' }));
