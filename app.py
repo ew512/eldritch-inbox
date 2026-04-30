@@ -6,7 +6,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from datetime import datetime
 import os
 import httpx
 
@@ -24,7 +23,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Establish input validators
 class UploadForm(BaseModel):
-    email: EmailStr
+    email: Optional[EmailStr] = None
 
 async def validate_image_file(file:UploadFile) -> bool:
     if file.content_type not in ["image/jpeg", "image/png","image/heic"]:
@@ -58,13 +57,15 @@ async def serve_frontend():
 # Image submission endpoint
 @app.post("/submit")
 async def submit_image(
-    email: Optional[EmailStr] = Form(...),
+    email: Optional[str] = Form(None),
     setting_image: UploadFile = File(...) 
 ):
+    email_to_validate = email if email and email.strip() else None
+
     try:
-        form_data = UploadForm(email=email)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        form_data = UploadForm(email=email_to_validate)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Please provide a valid email address.")
     
     await validate_image_file(setting_image)
 

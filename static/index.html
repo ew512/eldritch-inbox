@@ -619,17 +619,15 @@
 
       const json = await res.json();
 
-      /* ── Render output ──
-         Expected shape: { prompt: "...", extract: "..." }
-         Adjust field names to match your actual webhook response.       */
-      const prompt = json.prompt ?? json.writing_prompt ?? '';
-      const extract  = json.extract  ?? json.prose_extract  ?? '';
+      /* ── Render output ── */
+      const prompt = json.prompt ?? '';
+      const extract  = json.extract ?? '';
 
       if (prompt || extract) {
         outputPrompt.textContent = prompt;
 
         // Wrap paragraphs
-        outputExtract.innerHTML = extract
+        outputStory.innerHTML = extract
           .split(/\n{2,}/)
           .filter(p => p.trim())
           .map(p => `<p>${p.trim()}</p>`)
