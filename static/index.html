@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Eldritch Inbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IM+Fell+English:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:          #0a0805;
+      --surface:     #110e09;
+      --border:      #2e2218;
+      --red:         #7a2a22;
+      --red-bright:  #9e3b30;
+      --amber:       #b07d3a;
+      --amber-dim:   #7a5a2a;
+      --parchment:   #e8dfc8;
+      --parchment-dim:#a89878;
+      --white:       #f5f0e8;
+      --ink:         #0e0b06;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--parchment);
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 18px;
+      line-height: 1.7;
+      min-height: 100vh;
+      overflow-x: hidden;
+      cursor: default;
+    }
+
+    /* ── Grain overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.35;
+    }
+
+    /* ── Blood drip border top ── */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, transparent 0%, var(--red) 20%, var(--red-bright) 50%, var(--red) 80%, transparent 100%);
+      z-index: 100;
+      box-shadow: 0 0 18px 2px var(--red);
+    }
+
+    /* ── Vignette ── */
+    .vignette {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.85) 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ── Layout ── */
+    .wrapper {
+      position: relative;
+      z-index: 2;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 80px 40px 100px;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+      animation: fadeDown 1s ease both;
+    }
+
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-weight: 400;
+      font-size: clamp(3.5rem, 10vw, 6.5rem);
+      line-height: 1.0;
+      color: var(--white);
+      text-shadow:
+        0 0 40px rgba(139,26,26,0.6),
+        0 0 80px rgba(139,26,26,0.25),
+        2px 3px 0px var(--ink);
+      letter-spacing: 0.03em;
+      margin-bottom: 22px;
+    }
+
+    .tagline {
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      font-size: 1.1rem;
+      color: var(--parchment);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 40px 0;
+      opacity: 0.4;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--parchment));
+    }
+    .divider::after { background: linear-gradient(90deg, var(--parchment), transparent); }
+    .divider span { font-size: 1rem; color: var(--parchment); flex-shrink: 0; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 44px 44px;
+      position: relative;
+      animation: fadeUp 0.9s ease 0.2s both;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 2px;
+      background: linear-gradient(135deg, rgba(139,26,26,0.05) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    /* corner ornaments */
+    .card::after {
+      content: '✦';
+      position: absolute;
+      top: 12px; right: 16px;
+      font-size: 0.6rem;
+      color: var(--red-bright);
+      opacity: 0.5;
+    }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 28px; }
+
+    label {
+      display: block;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 13px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--parchment);
+      margin-bottom: 10px;
+    }
+
+    label .optional {
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      letter-spacing: 0.05em;
+      text-transform: none;
+      font-size: 13px;
+      color: var(--parchment-dim);
+      opacity: 0.7;
+    }
+
+    /* ── Upload area ── */
+    .upload-area {
+      border: 1px dashed var(--border);
+      border-radius: 2px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.3s, background 0.3s;
+      position: relative;
+      background: rgba(255,255,255,0.015);
+    }
+
+    .upload-area:hover, .upload-area.dragover {
+      border-color: var(--red);
+      background: rgba(200,146,42,0.04);
+    }
+
+    .upload-area input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-label-text {
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      color: var(--parchment-dim);
+      font-size: 1rem;
+    }
+
+    .upload-hint {
+      font-size: 11px;
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 0.18em;
+      color: var(--white);
+      opacity: 0.5;
+      margin-top: 8px;
+      text-transform: uppercase;
+    }
+
+    .file-chosen {
+      margin-top: 10px;
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      font-size: 0.9rem;
+      color: var(--parchment);
+      min-height: 1.2em;
+    }
+
+    /* ── Text input ── */
+    input[type="email"] {
+      width: 100%;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 13px 16px;
+      color: var(--parchment);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    input[type="email"]:focus {
+      border-color: var(--red-bright);
+      box-shadow: 0 0 0 2px rgba(200,146,42,0.1);
+    }
+
+    input[type="email"]::placeholder { color: var(--parchment-dim); opacity: 0.4; }
+
+    /* ── Submit button ── */
+    .btn-submit {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background: var(--red);
+      border: 1px solid var(--red-bright);
+      border-radius: 2px;
+      color: var(--white);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.25s, box-shadow 0.25s, transform 0.15s;
+      position: relative;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .btn-submit::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 60%);
+    }
+
+    .btn-submit:hover {
+      background: var(--red-bright);
+      box-shadow: 0 0 28px rgba(192,57,43,0.45);
+      transform: translateY(-1px);
+    }
+
+    .btn-submit:active { transform: translateY(0); }
+
+    .btn-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ── Loading state ── */
+    .loading-bar {
+      height: 2px;
+      background: linear-gradient(90deg, var(--red), var(--amber), var(--red));
+      background-size: 200% 100%;
+      animation: shimmer 1.4s linear infinite;
+      border-radius: 1px;
+      margin-top: 16px;
+      display: none;
+    }
+    .loading-bar.active { display: block; }
+
+    .loading-text {
+      text-align: center;
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      color: var(--parchment-dim);
+      font-size: 0.9rem;
+      margin-top: 12px;
+      display: none;
+    }
+    .loading-text.active { display: block; }
+
+    /* ── Output section ── */
+    .output-section {
+      margin-top: 56px;
+      animation: fadeUp 0.8s ease both;
+      display: none;
+    }
+
+    .output-section.visible { display: block; }
+
+    .output-header {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 13px;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: var(--white);
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .output-header::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    /* ── Writing Prompt ── */
+    .prompt-block {
+      background: rgba(139,26,26,0.07);
+      border-left: 3px solid var(--red);
+      padding: 24px 28px;
+      margin-bottom: 32px;
+      position: relative;
+    }
+
+    .prompt-block::before {
+      content: 'Writing Prompt';
+      position: absolute;
+      top: -10px; left: 24px;
+      background: var(--surface);
+      padding: 0 8px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--red-bright);
+    }
+
+    #output-prompt {
+      font-family: 'Bebas Neue', sans-serif;
+      font-weight: 400;
+      font-size: clamp(1.2rem, 3vw, 1.6rem);
+      line-height: 1.5;
+      color: var(--white);
+      text-shadow: 0 0 20px rgba(139,26,26,0.4);
+    }
+
+    /* ── Story Extract ── */
+    .story-block {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      padding: 32px 36px;
+      position: relative;
+    }
+
+    .story-block::before {
+      content: 'Story Extract';
+      position: absolute;
+      top: -10px; left: 24px;
+      background: var(--surface);
+      padding: 0 8px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--amber-dim);
+    }
+
+    #output-story {
+      font-family: 'IM Fell English', serif;
+      font-size: 1.05rem;
+      line-height: 1.85;
+      color: var(--parchment);
+    }
+
+    #output-story p { margin-bottom: 1em; }
+    #output-story p:last-child { margin-bottom: 0; }
+
+    /* ── Error ── */
+    .error-block {
+      display: none;
+      background: rgba(139,26,26,0.1);
+      border: 1px solid var(--red);
+      padding: 16px 20px;
+      margin-top: 16px;
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      color: #e07070;
+      font-size: 0.95rem;
+    }
+    .error-block.visible { display: block; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      margin-top: 80px;
+      font-family: 'Bebas Neue', serif;
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--white);
+      opacity: 0.35;
+      animation: fadeUp 1s ease 0.4s both;
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    @keyframes flicker {
+      0%, 95%, 100% { opacity: 1; }
+      96% { opacity: 0.85; }
+      97% { opacity: 1; }
+      98% { opacity: 0.9; }
+    }
+
+    h1 { animation: flicker 8s ease-in-out infinite; }
+
+    /* ── Responsive ── */
+    @media (max-width: 540px) {
+      .card { padding: 28px 22px; }
+      .story-block { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="vignette"></div>
+
+<div class="wrapper">
+
+  <header>
+    <h1> Eldritch Inbox </h1>
+    <p class="tagline">Upload a photograph of your world to uncover the darkness it hides.</p>
+  </header>
+
+  <div class="divider"><span>✎</span></div>
+
+  <div class="card">
+    <form
+      id="upload-form"
+      action="/submit/"
+      method="POST"
+      enctype="multipart/form-data"
+    >
+
+      <!-- Image upload -->
+      <div class="form-group">
+        <label for="setting_image">Your Setting</label>
+        <div
+          class="upload-area"
+          id="upload-area"
+          role="button"
+          aria-label="Upload an image of your setting"
+          tabindex="0"
+        >
+          <input
+            type="file"
+            id="setting_image"
+            name="setting_image"
+            accept=".jpg,.jpeg,.png,.heic,image/jpeg, image/jpg, image/png, image/heic"
+            required
+            aria-required="true"
+          />
+          <p class="upload-label-text">Click or drag an image here</p>
+          <p class="upload-hint">JPEG · PNG · HEIC &nbsp;·&nbsp; Max 5 MB</p>
+        </div>
+        <p class="file-chosen" id="file-chosen" aria-live="polite"></p>
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label for="email">
+          Email Address &nbsp;<span class="optional">— optional, for a copy to your inbox</span>
+        </label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          placeholder="your@email.com"
+          autocomplete="email"
+        />
+      </div>
+
+      <!-- Submit -->
+      <button type="submit" class="btn-submit" id="submit-btn">
+        Summon the Story
+      </button>
+
+      <div class="loading-bar" id="loading-bar"></div>
+      <p class="loading-text" id="loading-text">The shadows are stirring…</p>
+
+      <div class="error-block" id="error-block" role="alert"></div>
+
+    </form>
+  </div>
+
+  <!-- ── Output ── -->
+  <div class="output-section" id="output-section" aria-live="polite">
+    <p class="output-header">What the darkness revealed</p>
+
+    <div class="prompt-block">
+      <p id="output-prompt"></p>
+    </div>
+
+    <div class="story-block">
+      <div id="output-story"></div>
+    </div>
+  </div>
+
+  <footer>Eldritch Inbox &nbsp;·&nbsp; 2026 </footer>
+
+</div>
+
+<script>
+  /* ── File input label ── */
+  const fileInput   = document.getElementById('setting_image');
+  const fileChosen  = document.getElementById('file-chosen');
+  const uploadArea  = document.getElementById('upload-area');
+
+  fileInput.addEventListener('change', () => {
+    fileChosen.textContent = fileInput.files.length
+      ? `✦ ${fileInput.files[0].name}`
+      : '';
+  });
+
+  /* Drag-and-drop highlight */
+  ['dragover','dragenter'].forEach(e => uploadArea.addEventListener(e, ev => {
+    ev.preventDefault(); uploadArea.classList.add('dragover');
+  }));
+  ['dragleave','drop'].forEach(e => uploadArea.addEventListener(e, () => {
+    uploadArea.classList.remove('dragover');
+  }));
+
+  /* Keyboard trigger for upload area */
+  uploadArea.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') fileInput.click();
+  });
+
+  /* ── Form submission ── */
+  const form        = document.getElementById('upload-form');
+  const submitBtn   = document.getElementById('submit-btn');
+  const loadingBar  = document.getElementById('loading-bar');
+  const loadingText = document.getElementById('loading-text');
+  const errorBlock  = document.getElementById('error-block');
+  const outputSec   = document.getElementById('output-section');
+  const outputPrompt= document.getElementById('output-prompt');
+  const outputStory = document.getElementById('output-story');
+
+  function setLoading(on) {
+    submitBtn.disabled = on;
+    submitBtn.textContent = on ? 'Listening to the dark…' : 'Summon the Story';
+    loadingBar.classList.toggle('active', on);
+    loadingText.classList.toggle('active', on);
+  }
+
+  function showError(msg) {
+    errorBlock.textContent = msg;
+    errorBlock.classList.add('visible');
+  }
+
+  function hideError() {
+    errorBlock.classList.remove('visible');
+    errorBlock.textContent = '';
+  }
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    hideError();
+    outputSec.classList.remove('visible');
+
+    const data = new FormData(form);
+    setLoading(true);
+
+    try {
+      const res = await fetch('/submit/', { method: 'POST', body: data });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Something went wrong.' }));
+        throw new Error(err.detail || `Error ${res.status}`);
+      }
+
+      const json = await res.json();
+
+      /* ── Render output ──
+         Expected shape: { prompt: "...", extract: "..." }
+         Adjust field names to match your actual webhook response.       */
+      const prompt = json.prompt ?? json.writing_prompt ?? '';
+      const extract  = json.extract  ?? json.prose_extract  ?? '';
+
+      if (prompt || extract) {
+        outputPrompt.textContent = prompt;
+
+        // Wrap paragraphs
+        outputExtract.innerHTML = extract
+          .split(/\n{2,}/)
+          .filter(p => p.trim())
+          .map(p => `<p>${p.trim()}</p>`)
+          .join('');
+
+        outputSec.classList.add('visible');
+        outputSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+    } catch (err) {
+      showError(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  });
+</script>
+</body>
+</html>
