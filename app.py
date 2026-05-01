@@ -32,7 +32,7 @@ async def validate_image_file(file:UploadFile) -> bool:
             detail="Please upload only JPEG, PNG or HEIC files."
         )
     
-    MAX_FILE_SIZE = 2*1024*1024*1024*1024*1024
+    MAX_FILE_SIZE = 2.5*1024*1024
 
     await file.seek(0)
 
@@ -42,7 +42,7 @@ async def validate_image_file(file:UploadFile) -> bool:
         if file_size > MAX_FILE_SIZE:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail="Please upload an image smaller than 5 MB."
+                detail="Please upload an image smaller than 2.5 MB."
             )
     
     # Reset file position for later use
@@ -60,6 +60,7 @@ async def submit_image(
     email: Optional[str] = Form(None),
     setting_image: UploadFile = File(...) 
 ):
+
     email_to_validate = email if email and email.strip() else None
 
     try:
