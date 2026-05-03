@@ -7,12 +7,14 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from google.cloud import firestore
+from dotenv import load_dotenv
 import os
 import httpx
 import hmac
 import hashlib
 
 # Get n8n webhook url from env
+load_dotenv()
 N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL")
 
 # Initialise Firestore database
@@ -129,16 +131,13 @@ async def get_history(email:EmailStr=Form(...)):
     email_hash = hash_email(email)
 
     # Fetch history from Firestore
-    docs = db.collection("eldritch_inbox") \
-             .where("email", "==", email_hash) \
-             .order_by("timestamp", direction=firestore.Query.DESCENDING) \
-             .stream()
+    docs = db.collection("eldritch_inbox").where(filter=firestore.FieldFilter("email", "==", email_hash)).order_by("date_time", direction=firestore.Query.DESCENDING).stream()
 
     entries = []
     for doc in docs:
         data = doc.to_dict()
         entries.append({
-            "timestamp": data.get("timestamp"),
+            "timestamp": data.get("date_time"),
             "prompt": data.get("prompt"),
             "extract": data.get("extract")
         })
