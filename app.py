@@ -8,9 +8,20 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 import os
 import httpx
+import hmac
+import hashlib
 
 # Get n8n webhook url from env
 N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL")
+
+# Hash function for email
+def hash_email(email:str) -> str:
+    email_secret = os.getenv("EMAIL_HASH_SECRET")
+    return hmac.new(
+        email_secret.encode(),
+        email.encode(),
+        hashlib.sha256
+    ).hexdigest()
 
 # Initialise app
 app = FastAPI(title="Eldritch Inbox")
@@ -32,7 +43,7 @@ async def validate_image_file(file:UploadFile) -> bool:
             detail="Please upload only JPEG, PNG or HEIC files."
         )
     
-    MAX_FILE_SIZE = 2.5*1024*1024
+    MAX_FILE_SIZE = 2.5*1024*1024 # 2.5MB size limit to avoid n8n memory overload
 
     await file.seek(0)
 
@@ -95,3 +106,26 @@ async def submit_image(
             raise HTTPException(status_code=500, detail=f"n8n error: {e}")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Connection error: {str(e)}")
+
+# History page endpoint
+@app.get("/history")
+async def serve_history():
+    return FileResponse("static/history.html")
+
+# Submit email to get history
+@app.post("/history")
+async def get_history(email:EmailStr=Form(...)):
+    # Validate email
+    try:
+        submitted_email = UploadForm(email=email)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Please provide a valid email address.")
+    
+    # Hash email
+    email_hash = hash_email(email)
+
+    return {
+        "status":"hash success",
+        "prompt":"No prompt generated",
+        "extract":"No prompt generated"
+    }
