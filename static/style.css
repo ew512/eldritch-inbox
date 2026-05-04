@@ -535,3 +535,154 @@
     opacity: 1;
     color: var(--parchment);
     }
+
+  /* ── Customise section ── */
+  .customise-group { margin-bottom: 28px; }
+
+  .btn-customise {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 10px 18px;
+    color: var(--parchment-dim);
+    font-family: 'IM Fell English', serif;
+    font-style: italic;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: border-color 0.25s, color 0.25s;
+    margin-top: 4px;
+  }
+
+  .btn-customise:hover {
+    border-color: var(--amber-dim);
+    color: var(--parchment);
+  }
+
+  .customise-chevron {
+    font-size: 0.75rem;
+    transition: transform 0.3s ease;
+    display: inline-block;
+  }
+
+  .customise-panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.35s ease;
+    margin-top: 0;
+  }
+
+  .customise-panel.open {
+    grid-template-rows: 1fr;
+    margin-top: 20px;
+  }
+
+  .customise-panel > .customise-grid {
+    overflow: hidden;
+  }
+
+  .customise-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 24px;
+    padding: 24px;
+    background: rgba(255,255,255,0.015);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+  }
+
+  .customise-field { display: flex; flex-direction: column; gap: 10px; }
+  .customise-field--wide { grid-column: 1 / -1; }
+
+  .customise-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--parchment-dim);
+    margin-bottom: 0;
+  }
+
+  /* ── Select dropdowns ── */
+  .select-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .select-wrapper select {
+    width: 100%;
+    appearance: none;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 10px 36px 10px 14px;
+    color: var(--parchment);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.25s;
+  }
+
+  .select-wrapper select:focus {
+    border-color: var(--red-bright);
+  }
+
+  .select-arrow {
+    position: absolute;
+    right: 12px;
+    font-size: 0.7rem;
+    color: var(--parchment-dim);
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  /* ── Subgenre radio pills ── */
+  .subgenre-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .subgenre-option {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .subgenre-option input[type="radio"] {
+    display: none;
+  }
+
+  .subgenre-option span {
+    display: inline-block;
+    padding: 7px 16px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-family: 'IM Fell English', serif;
+    font-style: italic;
+    font-size: 0.9rem;
+    color: var(--parchment-dim);
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+    cursor: pointer;
+  }
+
+  .subgenre-option input[type="radio"]:checked + span {
+    border-color: var(--red-bright);
+    color: var(--white);
+    background: rgba(139,26,26,0.15);
+  }
+
+  .subgenre-option:hover span {
+    border-color: var(--amber-dim);
+    color: var(--parchment);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 540px) {
+    .customise-grid { grid-template-columns: 1fr; }
+    .customise-field--wide { grid-column: 1; }
+  }

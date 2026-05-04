@@ -75,7 +75,10 @@ async def serve_frontend():
 @app.post("/submit")
 async def submit_image(
     email: Optional[str] = Form(None),
-    setting_image: UploadFile = File(...) 
+    setting_image: UploadFile = File(...) ,
+    perspective: str = Form("third"),
+    tense: str = Form("past"),
+    subgenre: str = Form("supernatural")
 ):
 
     email_to_validate = email if email and email.strip() else None
@@ -94,7 +97,10 @@ async def submit_image(
         try:
             # Prepare the file and data payload
             files = {"image": (setting_image.filename, image_content, setting_image.content_type)}
-            data = {"email": form_data.email}
+            data = {"email": form_data.email,
+                    "perspective": perspective,
+                    "tense": tense,
+                    "subgenre":subgenre}
 
             response = await client.post(N8N_WEBHOOK_URL, files=files, data=data, timeout=60.0)
             response.raise_for_status()

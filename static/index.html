@@ -67,6 +67,70 @@
         />
       </div>
 
+      <!-- Customisation -->
+    <div class="form-group customise-group">
+      <label as="customise-toggle">
+        Customise Your Story &nbsp;<span class="optional">— optional</span>
+      </label>
+
+      <button type="button" class="btn-customise" id="customise-toggle" aria-expanded="false" aria-controls="customise-panel">
+        <span id="customise-toggle-text">Show options</span>
+        <span class="customise-chevron" id="customise-chevron">▾</span>
+      </button>
+
+      <div class="customise-panel" id="customise-panel" aria-hidden="true">
+
+        <div class="customise-grid">
+
+          <div class="customise-field">
+            <label for="perspective" class="customise-label">Perspective</label>
+            <div class="select-wrapper">
+              <select id="perspective" name="perspective">
+                <option value="third">Third person</option>
+                <option value="first">First person</option>
+                <option value="second">Second person</option>
+              </select>
+              <span class="select-arrow">▾</span>
+            </div>
+          </div>
+
+          <div class="customise-field">
+            <label for="tense" class="customise-label">Tense</label>
+            <div class="select-wrapper">
+              <select id="tense" name="tense">
+                <option value="past">Past</option>
+                <option value="present">Present</option>
+              </select>
+              <span class="select-arrow">▾</span>
+            </div>
+          </div>
+
+          <div class="customise-field customise-field--wide">
+            <label class="customise-label">Subgenre</label>
+            <div class="subgenre-options" role="group" aria-label="Subgenre">
+              <label class="subgenre-option">
+                <input type="radio" name="subgenre" value="psychological" checked />
+                <span>Psychological</span>
+              </label>
+              <label class="subgenre-option">
+                <input type="radio" name="subgenre" value="gothic" />
+                <span>Gothic</span>
+              </label>
+              <label class="subgenre-option">
+                <input type="radio" name="subgenre" value="cosmic" />
+                <span>Cosmic</span>
+              </label>
+              <label class="subgenre-option">
+                <input type="radio" name="subgenre" value="body horror" />
+                <span>Body Horror</span>
+              </label>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
       <!-- Submit -->
       <button type="submit" class="btn-submit" id="submit-btn">
         Summon the Story
@@ -194,6 +258,20 @@
     } finally {
       setLoading(false);
     }
+  });
+
+  /* ── Customise toggle ── */
+  const customiseToggle = document.getElementById('customise-toggle');
+  const customisePanel  = document.getElementById('customise-panel');
+  const customiseText   = document.getElementById('customise-toggle-text');
+  const customiseChevron = document.getElementById('customise-chevron');
+
+  customiseToggle.addEventListener('click', () => {
+    const open = customisePanel.classList.toggle('open');
+    customiseToggle.setAttribute('aria-expanded', open);
+    customisePanel.setAttribute('aria-hidden', !open);
+    customiseText.textContent = open ? 'Hide options' : 'Show options';
+    customiseChevron.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
   });
 </script>
 </body>
