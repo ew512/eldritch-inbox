@@ -41,15 +41,15 @@ def get_subgenre(subgenre: str=Query(...)):
         query = db.collection("style_references").where("subgenre","==",subgenre).limit(1)
         result = query.get()
 
-        docs = [doc.todic() for doc in results]
+        docs = [doc.to_dict() for doc in result]
 
         if not docs:
             raise HTTPException(status_code=400,detail="No document found with that subgenre.")
         
-        return docs[0]
+        return {"style excerpt":docs[0].get("excerpt")}
     except Exception as e:
         raise HTTPException(status_code=500,detail=str(e))
-        
+
 # POST endpoint
 @app.post("/add")
 def add_style(style:styleRef):
