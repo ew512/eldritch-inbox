@@ -6,11 +6,28 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+from google.cloud import firestore
+from dotenv import load_dotenv
 import os
 import httpx
+import hmac
+import hashlib
 
 # Get n8n webhook url from env
+load_dotenv()
 N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL")
+
+# Initialise Firestore database
+db = firestore.Client()
+
+# Hash function for email
+def hash_email(email:str) -> str:
+    email_secret = os.getenv("EMAIL_HASH_SECRET")
+    return hmac.new(
+        email_secret.encode(),
+        email.encode(),
+        hashlib.sha256
+    ).hexdigest()
 
 # Initialise app
 app = FastAPI(title="Eldritch Inbox")
@@ -32,7 +49,7 @@ async def validate_image_file(file:UploadFile) -> bool:
             detail="Please upload only JPEG, PNG or HEIC files."
         )
     
-    MAX_FILE_SIZE = 2.5*1024*1024
+    MAX_FILE_SIZE = 2.5*1024*1024 # 2.5MB size limit to avoid n8n memory overload
 
     await file.seek(0)
 
@@ -58,7 +75,10 @@ async def serve_frontend():
 @app.post("/submit")
 async def submit_image(
     email: Optional[str] = Form(None),
-    setting_image: UploadFile = File(...) 
+    setting_image: UploadFile = File(...) ,
+    perspective: str = Form("third"),
+    tense: str = Form("past"),
+    subgenre: str = Form("supernatural")
 ):
 
     email_to_validate = email if email and email.strip() else None
@@ -77,21 +97,58 @@ async def submit_image(
         try:
             # Prepare the file and data payload
             files = {"image": (setting_image.filename, image_content, setting_image.content_type)}
-            data = {"email": form_data.email}
+            data = {"email": form_data.email,
+                    "perspective": perspective,
+                    "tense": tense,
+                    "subgenre":subgenre}
 
             response = await client.post(N8N_WEBHOOK_URL, files=files, data=data, timeout=60.0)
             response.raise_for_status()
             
             result = response.json()
-            
-            return {
-                "status": "success",
-                "prompt": result.get("prompt", "No prompt generated"),
-                "extract": result.get("extract", "No subject generated")
-            }
+
+            if result.get("status") == "invalid_image":
+                raise HTTPException(status_code=422, detail=result.get("detail", "Invalid image."))
+            else:
+                return {
+                    "status": "success",
+                    "prompt": result.get("prompt", "No prompt generated"),
+                    "extract": result.get("extract", "No subject generated")
+                }
         except httpx.TimeoutException:
             raise HTTPException(status_code=504, detail="The system took too long to respond.")
         except httpx.HTTPStatusError as e:
             raise HTTPException(status_code=500, detail=f"n8n error: {e}")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Connection error: {str(e)}")
+
+# History page endpoint
+@app.get("/history")
+async def serve_history():
+    return FileResponse("static/history.html")
+
+# Submit email to get history
+@app.post("/history")
+async def get_history(email:EmailStr=Form(...)):
+    # Validate email
+    try:
+        submitted_email = UploadForm(email=email)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Please provide a valid email address.")
+    
+    # Hash email
+    email_hash = hash_email(email)
+
+    # Fetch history from Firestore
+    docs = db.collection("eldritch_inbox").where(filter=firestore.FieldFilter("email", "==", email_hash)).order_by("date_time", direction=firestore.Query.DESCENDING).stream()
+
+    entries = []
+    for doc in docs:
+        data = doc.to_dict()
+        entries.append({
+            "timestamp": data.get("date_time"),
+            "prompt": data.get("prompt"),
+            "extract": data.get("extract")
+        })
+
+    return {"entries": entries}
