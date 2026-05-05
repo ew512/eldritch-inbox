@@ -1,7 +1,7 @@
 ### FastAPI Connection to Firestore Database for Writing Style References ###
 
 # Import libraries
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from google.cloud import firestore
 
@@ -22,7 +22,7 @@ class styleRef(BaseModel):
 def root():
     return {"message":"Endpoint is running"}
 
-# GET endpoint - crucial for LLM augmentation
+# general GET endpoint
 @app.get("/styles")
 def get_styles():
     docs = collection.stream()
@@ -35,6 +35,21 @@ def get_styles():
     
     return {"logs":logs}
 
+@app.get("/find-subgenre")
+def get_subgenre(subgenre: str=Query(...)):
+    try:
+        query = db.collection("style_references").where("subgenre","==",subgenre).limit(1)
+        result = query.get()
+
+        docs = [doc.todic() for doc in results]
+
+        if not docs:
+            raise HTTPException(status_code=400,detail="No document found with that subgenre.")
+        
+        return docs[0]
+    except Exception as e:
+        raise HTTPException(status_code=500,detail=str(e))
+        
 # POST endpoint
 @app.post("/add")
 def add_style(style:styleRef):
