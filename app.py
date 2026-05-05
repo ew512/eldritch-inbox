@@ -106,12 +106,15 @@ async def submit_image(
             response.raise_for_status()
             
             result = response.json()
-            
-            return {
-                "status": "success",
-                "prompt": result.get("prompt", "No prompt generated"),
-                "extract": result.get("extract", "No subject generated")
-            }
+
+            if result.get("status") == "invalid_image":
+                raise HTTPException(status_code=422, detail=result.get("detail", "Invalid image."))
+            else:
+                return {
+                    "status": "success",
+                    "prompt": result.get("prompt", "No prompt generated"),
+                    "extract": result.get("extract", "No subject generated")
+                }
         except httpx.TimeoutException:
             raise HTTPException(status_code=504, detail="The system took too long to respond.")
         except httpx.HTTPStatusError as e:

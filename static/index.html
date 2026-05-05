@@ -155,6 +155,10 @@
     <div class="story-block">
       <div id="output-story"></div>
     </div>
+
+    <button class="btn-copy" id="copy-btn" aria-label="Copy story to clipboard">
+    Copy to clipboard
+    </button>
   </div>
 
   <nav class="page-nav">
@@ -235,6 +239,11 @@
 
       const json = await res.json();
 
+      if (json.status === "invalid_image") {
+        showError(json.detail);
+        return;
+        }
+
       /* ── Render output ── */
       const prompt = json.prompt ?? '';
       const extract  = json.extract ?? '';
@@ -251,9 +260,18 @@
 
         outputSec.classList.add('visible');
         outputSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById('copy-btn').addEventListener('click', () => {
+        const text = `${outputPrompt.textContent}\n\n${outputStory.innerText}`.trim();
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = document.getElementById('copy-btn');
+          btn.textContent = '✦ Copied';
+          setTimeout(() => { btn.textContent = 'Copy to clipboard'; }, 2000);
+        });
+      });
       }
 
     } catch (err) {
+      const message = err.message.replace(/^\d+:\s*/, '');
       showError(`Error: ${err.message}`);
     } finally {
       setLoading(false);
