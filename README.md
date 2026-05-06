@@ -21,7 +21,7 @@ Users can customise their output by selecting a narrative perspective, tense, an
 | AI Models | Gemini 2.5 Flash Lite (image analysis, writing, email formatting) via OpenRouter connection |
 | Database | Google Firestore |
 | Email | Gmail via n8n Gmail node |
-| Containerisation | Docker |
+| Containerisation | Docker, Buildpacks |
  
 ## Project Structure
  
@@ -39,6 +39,7 @@ eldritch-inbox/
     ├── Dockerfile       
     └── requirements.txt
 └── static/
+    ├── favicon.ico      # Favicon page logo
     ├── index.html       # Main submission page
     ├── history.html     # Submission history page
     └── style.css        # Shared stylesheet
@@ -91,6 +92,7 @@ gcloud run deploy eldritch-inbox \
   --allow-unauthenticated \
   --set-env-vars N8N_WEBHOOK_URL=...,EMAIL_SECRET=...
 ```
+> Actual deployment was run via Buildpacks instead of Docker due to module import and .env access errors unresolvable in the project timeframe. The repo Dockerfile is given for transparency.
  
 ## n8n Workflow
  
@@ -102,7 +104,7 @@ Webhook → Image Analysis Agent → If Setting Image → Writing Agent → Get 
        → If Email Given → Hash Email → Email Writing Agent → Send Email
 ```
 
-The Image Analysis Agent produces a structured description of the uploaded image across five fields (location, atmosphere, details, sensory, anomaly). The Writing Agent receives this description along with the user's customisation preferences and generates the prompt and extract. If the image is not identifiable as a setting, the workflow returns an `invalid_image` status and the writing pipeline is skipped.
+The Image Analysis Agent produces a structured description of the uploaded image across five fields (location, atmosphere, details, sensory, anomaly). The Writing Agent receives this description along with the user's customisation preferences and generates the prompt and extract. If the image is not identifiable as a setting, the workflow returns an `invalid_image` status and the writing pipeline is skipped. If users provide their email, the Email Writing Agent creates an HTML-formatted email using a given HTML template, which is sent to users via the Gmail node after the webhook response.
 
 ## Privacy
  
@@ -113,6 +115,7 @@ User email addresses are never stored in plain text. Before storage, each addres
 - The system is optimised for setting-based photographs (buildings, landscapes, interiors, outdoor environments). Portraits, abstract images, and screenshots are rejected at the validation stage.
 - The writing pipeline is not conversational — each submission is stateless and independent.
 - Due to n8n memory limits, image upload sizes are limited to 2.5MB.
+- As LLMs lack word-counting capabilities, outputs may vary slightly in size (typically 250-280 words).
 
 ## Responsible AI
 
