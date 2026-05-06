@@ -8,6 +8,10 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 from google.cloud import firestore
 from dotenv import load_dotenv
+from slowapi import Limiter, _rate_limit_exceeded_handler
+#from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from starlette.requests import Request
 import os
 import httpx
 import hmac
@@ -29,8 +33,20 @@ def hash_email(email:str) -> str:
         hashlib.sha256
     ).hexdigest()
 
+# Get IP address function for deployed app
+def get_real_ip(request: Request) -> str:
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    return request.client.host
+
 # Initialise app
 app = FastAPI(title="Eldritch Inbox")
+
+# Initialise limiter
+limiter = Limiter(key_func=get_real_ip)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Mount static files for HTML
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -73,7 +89,9 @@ async def serve_frontend():
 
 # Image submission endpoint
 @app.post("/submit")
+@limiter.limit("5/minute")
 async def submit_image(
+    request: Request,
     email: Optional[str] = Form(None),
     setting_image: UploadFile = File(...) ,
     perspective: str = Form("third"),
@@ -129,7 +147,10 @@ async def serve_history():
 
 # Submit email to get history
 @app.post("/history")
-async def get_history(email:EmailStr=Form(...)):
+@limiter.limit("10/minute")
+async def get_history(
+    request: Request,
+    email:EmailStr=Form(...)):
     # Validate email
     try:
         submitted_email = UploadForm(email=email)

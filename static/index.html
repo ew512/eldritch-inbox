@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Upload a photograph of your surroundings and receive a horror writing prompt and prose extract inspired by your setting.">
+  <meta property="og:title" content="Eldritch Inbox">
+  <meta property="og:description" content="Upload a photograph of your surroundings and receive a horror writing prompt and prose extract inspired by your setting.">
+  <meta property="og:type" content="website">
   <title>Eldritch Inbox</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico"> <!--- Writing icon by icon https://icons8.com -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IM+Fell+English:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
@@ -176,9 +181,15 @@
   const uploadArea  = document.getElementById('upload-area');
 
   fileInput.addEventListener('change', () => {
+    const allowed = ['image/jpeg', 'image/png', 'image/heic'];
+    if (fileInput.files.length && !allowed.includes(fileInput.files[0].type)) {
+      showError('Please upload a JPEG, PNG or HEIC file.');
+      fileInput.value = '';
+      fileChosen.textContent = '';
+    return;
+  }
     fileChosen.textContent = fileInput.files.length
-      ? `✦ ${fileInput.files[0].name}`
-      : '';
+      ? `✦ ${fileInput.files[0].name}` : '';
   });
 
   /* Drag-and-drop highlight */
@@ -225,12 +236,18 @@
     e.preventDefault();
     hideError();
     outputSec.classList.remove('visible');
+    outputPrompt.textContent = '';
+    outputStory.innerHTML = '';
 
     const data = new FormData(form);
     setLoading(true);
 
     try {
       const res = await fetch('/submit', { method: 'POST', body: data });
+
+      if (res.status === 429) {
+        throw new Error('Too many submissions — please wait a moment before trying again.');
+      }
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Something went wrong.' }));
