@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Upload a photograph of your surroundings and receive a horror writing prompt and prose extract inspired by your setting.">
+  <meta property="og:title" content="Eldritch Inbox">
+  <meta property="og:description" content="Upload a photograph of your surroundings and receive a horror writing prompt and prose extract inspired by your setting.">
+  <meta property="og:type" content="website">
   <title>Eldritch Inbox</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico"> <!--- Writing icon by icon https://icons8.com -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IM+Fell+English:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
@@ -56,7 +61,7 @@
       <!-- Email -->
       <div class="form-group">
         <label for="email">
-          Email Address &nbsp;<span class="optional">— optional, for a copy to your inbox</span>
+          Email Address &nbsp;<span class="optional">— optional, for a copy to your inbox and user history</span>
         </label>
         <input
           type="email"
@@ -109,7 +114,11 @@
             <label class="customise-label">Subgenre</label>
             <div class="subgenre-options" role="group" aria-label="Subgenre">
               <label class="subgenre-option">
-                <input type="radio" name="subgenre" value="psychological" checked />
+                <input type="radio" name="subgenre" value="supernatural" checked />
+                <span>Supernatural</span>
+              </label>
+              <label class="subgenre-option">
+                <input type="radio" name="subgenre" value="psychological" />
                 <span>Psychological</span>
               </label>
               <label class="subgenre-option">
@@ -119,10 +128,6 @@
               <label class="subgenre-option">
                 <input type="radio" name="subgenre" value="cosmic" />
                 <span>Cosmic</span>
-              </label>
-              <label class="subgenre-option">
-                <input type="radio" name="subgenre" value="supernatural" />
-                <span>Supernatural</span>
               </label>
             </div>
           </div>
@@ -165,8 +170,14 @@
     <a href="/history" class="nav-link">View your past stories →</a>
   </nav>
 
-  <footer>Eldritch Inbox &nbsp;·&nbsp; 2026 </footer>
+  <p class="disclaimer">
+    DISCLAIMER: Eldritch Inbox is a generative AI-powered tool intended for creative inspiration only.
+    Generative AI models are not infallible, so content may be inaccurate or unexpected. Always review outputs before use.
+  </p>
 
+  <footer>
+    Eldritch Inbox &nbsp;·&nbsp; 2026 
+  </footer>
 </div>
 
 <script>
@@ -176,18 +187,32 @@
   const uploadArea  = document.getElementById('upload-area');
 
   fileInput.addEventListener('change', () => {
+    const allowed = ['image/jpeg', 'image/png', 'image/heic'];
+    if (fileInput.files.length && !allowed.includes(fileInput.files[0].type)) {
+      showError('Please upload a JPEG, PNG or HEIC file.');
+      fileInput.value = '';
+      fileChosen.textContent = '';
+    return;
+  }
     fileChosen.textContent = fileInput.files.length
-      ? `✦ ${fileInput.files[0].name}`
-      : '';
+      ? `✦ ${fileInput.files[0].name}` : '';
   });
 
   /* Drag-and-drop highlight */
   ['dragover','dragenter'].forEach(e => uploadArea.addEventListener(e, ev => {
     ev.preventDefault(); uploadArea.classList.add('dragover');
   }));
-  ['dragleave','drop'].forEach(e => uploadArea.addEventListener(e, () => {
+  ['dragleave','drop'].forEach(e => uploadArea.addEventListener('drop', ev => {
+    ev.preventDefault();
     uploadArea.classList.remove('dragover');
-  }));
+    const file = ev.dataTransfer.files[0];
+    if (file) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      fileInput.files = dt.files;
+      fileInput.dispatchEvent(new Event('change'));
+    }
+}));
 
   /* Keyboard trigger for upload area */
   uploadArea.addEventListener('keydown', e => {
@@ -225,12 +250,18 @@
     e.preventDefault();
     hideError();
     outputSec.classList.remove('visible');
+    outputPrompt.textContent = '';
+    outputStory.innerHTML = '';
 
     const data = new FormData(form);
     setLoading(true);
 
     try {
       const res = await fetch('/submit', { method: 'POST', body: data });
+
+      if (res.status === 429) {
+        throw new Error('Too many submissions — please wait a moment before trying again.');
+      }
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Something went wrong.' }));
@@ -240,7 +271,7 @@
       const json = await res.json();
 
       if (json.status === "invalid_image") {
-        showError(json.detail);
+        showError(json.detail || "Invalid image.");
         return;
         }
 
@@ -260,14 +291,17 @@
 
         outputSec.classList.add('visible');
         outputSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        document.getElementById('copy-btn').addEventListener('click', () => {
-        const text = `${outputPrompt.textContent}\n\n${outputStory.innerText}`.trim();
-        navigator.clipboard.writeText(text).then(() => {
-          const btn = document.getElementById('copy-btn');
-          btn.textContent = '✦ Copied';
-          setTimeout(() => { btn.textContent = 'Copy to clipboard'; }, 2000);
-        });
-      });
+        form.reset();
+        fileChosen.textContent = '';
+
+    document.getElementById('copy-btn').addEventListener('click', () => {
+    const text = `${outputPrompt.textContent}\n\n${outputStory.innerText}`.trim();
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copy-btn');
+      btn.textContent = '✦ Copied';
+      setTimeout(() => { btn.textContent = 'Copy to clipboard'; }, 2000);
+    });
+  });
       }
 
     } catch (err) {

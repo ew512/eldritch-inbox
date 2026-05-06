@@ -409,13 +409,24 @@
     /* ── Footer ── */
     footer {
       text-align: center;
-      margin-top: 80px;
+      margin-top: 40px;
       font-family: 'Bebas Neue', serif;
       font-size: 10px;
       letter-spacing: 0.25em;
       text-transform: uppercase;
       color: var(--white);
       opacity: 0.35;
+      animation: fadeUp 1s ease 0.4s both;
+    }
+
+    .disclaimer {
+      font-size: 12px;
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 0.18em;
+      color: var(--white);
+      opacity: 0.35;
+      text-align: center;
+      margin-top: 80px;
       animation: fadeUp 1s ease 0.4s both;
     }
 
@@ -519,12 +530,13 @@
     .page-nav {
     text-align: center;
     margin-top: 48px;
+    margin-bottom: 2rem;
     }
 
     .nav-link {
     font-family: 'IM Fell English', serif;
     font-style: italic;
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     color: var(--parchment-dim);
     text-decoration: none;
     opacity: 0.6;

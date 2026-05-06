@@ -4,17 +4,20 @@
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException, status
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from google.cloud import firestore
 from dotenv import load_dotenv
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from starlette.requests import Request
 import os
 import httpx
 import hmac
 import hashlib
 
 # Get n8n webhook url from env
-load_dotenv()
 N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL")
 
 # Initialise Firestore database
@@ -23,22 +26,38 @@ db = firestore.Client()
 # Hash function for email
 def hash_email(email:str) -> str:
     email_secret = os.getenv("EMAIL_HASH_SECRET")
-    return hmac.new(
-        email_secret.encode(),
-        email.encode(),
-        hashlib.sha256
-    ).hexdigest()
+    if not email_secret:
+        raise RuntimeError("EMAIL_HASH_SECRET not set")
+    else:
+        return hmac.new(
+            email_secret.encode(),
+            email.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+# Get IP address function for deployed app
+def get_real_ip(request: Request) -> str:
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    return request.client.host
 
 # Initialise app
 app = FastAPI(title="Eldritch Inbox")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["POST", "GET"])
+
+# Initialise limiter
+limiter = Limiter(key_func=get_real_ip)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Mount static files for HTML
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Establish input validators
 """ Input validation code modified from GitHub
     https://gist.github.com/amahi2001/0c0835f97764460ead630169b2ba51ae """
 
-# Establish input validators
 class UploadForm(BaseModel):
     email: Optional[EmailStr] = None
 
@@ -73,7 +92,9 @@ async def serve_frontend():
 
 # Image submission endpoint
 @app.post("/submit")
+@limiter.limit("5/minute")
 async def submit_image(
+    request: Request,
     email: Optional[str] = Form(None),
     setting_image: UploadFile = File(...) ,
     perspective: str = Form("third"),
@@ -82,6 +103,7 @@ async def submit_image(
 ):
 
     email_to_validate = email if email and email.strip() else None
+    # n8n handles email hashing here as need both hashed and unhashed email
 
     try:
         form_data = UploadForm(email=email_to_validate)
@@ -118,9 +140,9 @@ async def submit_image(
         except httpx.TimeoutException:
             raise HTTPException(status_code=504, detail="The system took too long to respond.")
         except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=500, detail=f"n8n error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Connection error: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
 
 # History page endpoint
 @app.get("/history")
@@ -129,15 +151,18 @@ async def serve_history():
 
 # Submit email to get history
 @app.post("/history")
-async def get_history(email:EmailStr=Form(...)):
+@limiter.limit("10/minute")
+async def get_history(
+    request: Request,
+    email:EmailStr=Form(...)):
     # Validate email
     try:
-        submitted_email = UploadForm(email=email)
+        UploadForm(email=email)
     except Exception:
         raise HTTPException(status_code=400, detail="Please provide a valid email address.")
     
     # Hash email
-    email_hash = hash_email(email)
+    email_hash = hash_email(str(email).strip())
 
     # Fetch history from Firestore
     docs = db.collection("eldritch_inbox").where(filter=firestore.FieldFilter("email", "==", email_hash)).order_by("date_time", direction=firestore.Query.DESCENDING).stream()
