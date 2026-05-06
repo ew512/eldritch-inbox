@@ -2,4 +2,9 @@ fastapi
 slowapi
 uvicorn
 pydantic
+pydantic[email]
 aiofiles
+google-cloud-firestore
+python-dotenv
+python-multipart
+httpx

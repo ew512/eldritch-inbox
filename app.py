@@ -18,7 +18,6 @@ import hmac
 import hashlib
 
 # Get n8n webhook url from env
-load_dotenv()
 N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL")
 
 # Initialise Firestore database
