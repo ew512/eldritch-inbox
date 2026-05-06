@@ -118,9 +118,9 @@ async def submit_image(
         except httpx.TimeoutException:
             raise HTTPException(status_code=504, detail="The system took too long to respond.")
         except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=500, detail=f"n8n error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Connection error: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
 
 # History page endpoint
 @app.get("/history")
@@ -137,7 +137,7 @@ async def get_history(email:EmailStr=Form(...)):
         raise HTTPException(status_code=400, detail="Please provide a valid email address.")
     
     # Hash email
-    email_hash = hash_email(email)
+    email_hash = hash_email(str(email).strip())
 
     # Fetch history from Firestore
     docs = db.collection("eldritch_inbox").where(filter=firestore.FieldFilter("email", "==", email_hash)).order_by("date_time", direction=firestore.Query.DESCENDING).stream()

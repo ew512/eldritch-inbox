@@ -56,7 +56,7 @@
       <!-- Email -->
       <div class="form-group">
         <label for="email">
-          Email Address &nbsp;<span class="optional">— optional, for a copy to your inbox</span>
+          Email Address &nbsp;<span class="optional">— optional, for a copy to your inbox and user history</span>
         </label>
         <input
           type="email"
@@ -109,7 +109,11 @@
             <label class="customise-label">Subgenre</label>
             <div class="subgenre-options" role="group" aria-label="Subgenre">
               <label class="subgenre-option">
-                <input type="radio" name="subgenre" value="psychological" checked />
+                <input type="radio" name="subgenre" value="supernatural" checked />
+                <span>Supernatural</span>
+              </label>
+              <label class="subgenre-option">
+                <input type="radio" name="subgenre" value="psychological" />
                 <span>Psychological</span>
               </label>
               <label class="subgenre-option">
@@ -119,10 +123,6 @@
               <label class="subgenre-option">
                 <input type="radio" name="subgenre" value="cosmic" />
                 <span>Cosmic</span>
-              </label>
-              <label class="subgenre-option">
-                <input type="radio" name="subgenre" value="supernatural" />
-                <span>Supernatural</span>
               </label>
             </div>
           </div>
@@ -240,7 +240,8 @@
       const json = await res.json();
 
       if (json.status === "invalid_image") {
-        showError(json.detail);
+        const message = err.message.replace(/^\d+:\s*/, '');
+        showError(`Error: ${message}`);
         return;
         }
 
@@ -260,6 +261,9 @@
 
         outputSec.classList.add('visible');
         outputSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        form.reset();
+        fileChosen.textContent = '';
+
         document.getElementById('copy-btn').addEventListener('click', () => {
         const text = `${outputPrompt.textContent}\n\n${outputStory.innerText}`.trim();
         navigator.clipboard.writeText(text).then(() => {
