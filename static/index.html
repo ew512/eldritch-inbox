@@ -257,8 +257,7 @@
       const json = await res.json();
 
       if (json.status === "invalid_image") {
-        const message = err.message.replace(/^\d+:\s*/, '');
-        showError(`Error: ${message}`);
+        showError(json.detail || "Invalid image.");
         return;
         }
 
@@ -281,14 +280,14 @@
         form.reset();
         fileChosen.textContent = '';
 
-        document.getElementById('copy-btn').addEventListener('click', () => {
-        const text = `${outputPrompt.textContent}\n\n${outputStory.innerText}`.trim();
-        navigator.clipboard.writeText(text).then(() => {
-          const btn = document.getElementById('copy-btn');
-          btn.textContent = '✦ Copied';
-          setTimeout(() => { btn.textContent = 'Copy to clipboard'; }, 2000);
-        });
-      });
+    document.getElementById('copy-btn').addEventListener('click', () => {
+    const text = `${outputPrompt.textContent}\n\n${outputStory.innerText}`.trim();
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copy-btn');
+      btn.textContent = '✦ Copied';
+      setTimeout(() => { btn.textContent = 'Copy to clipboard'; }, 2000);
+    });
+  });
       }
 
     } catch (err) {

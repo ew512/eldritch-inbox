@@ -4,12 +4,12 @@
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException, status
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from google.cloud import firestore
 from dotenv import load_dotenv
 from slowapi import Limiter, _rate_limit_exceeded_handler
-#from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from starlette.requests import Request
 import os
@@ -27,11 +27,14 @@ db = firestore.Client()
 # Hash function for email
 def hash_email(email:str) -> str:
     email_secret = os.getenv("EMAIL_HASH_SECRET")
-    return hmac.new(
-        email_secret.encode(),
-        email.encode(),
-        hashlib.sha256
-    ).hexdigest()
+    if not email_secret:
+        raise RuntimeError("EMAIL_HASH_SECRET not set")
+    else:
+        return hmac.new(
+            email_secret.encode(),
+            email.encode(),
+            hashlib.sha256
+        ).hexdigest()
 
 # Get IP address function for deployed app
 def get_real_ip(request: Request) -> str:
@@ -42,6 +45,7 @@ def get_real_ip(request: Request) -> str:
 
 # Initialise app
 app = FastAPI(title="Eldritch Inbox")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["POST", "GET"])
 
 # Initialise limiter
 limiter = Limiter(key_func=get_real_ip)
@@ -51,10 +55,10 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Mount static files for HTML
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Establish input validators
 """ Input validation code modified from GitHub
     https://gist.github.com/amahi2001/0c0835f97764460ead630169b2ba51ae """
 
-# Establish input validators
 class UploadForm(BaseModel):
     email: Optional[EmailStr] = None
 
@@ -100,6 +104,7 @@ async def submit_image(
 ):
 
     email_to_validate = email if email and email.strip() else None
+    # n8n handles email hashing here as need both hashed and unhashed email
 
     try:
         form_data = UploadForm(email=email_to_validate)
@@ -153,7 +158,7 @@ async def get_history(
     email:EmailStr=Form(...)):
     # Validate email
     try:
-        submitted_email = UploadForm(email=email)
+        UploadForm(email=email)
     except Exception:
         raise HTTPException(status_code=400, detail="Please provide a valid email address.")
     
