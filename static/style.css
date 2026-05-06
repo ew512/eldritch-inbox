@@ -519,6 +519,7 @@
     .page-nav {
     text-align: center;
     margin-top: 48px;
+    margin-bottom: 2rem;
     }
 
     .nav-link {
@@ -686,3 +687,12 @@
     .customise-grid { grid-template-columns: 1fr; }
     .customise-field--wide { grid-column: 1; }
   }
+
+  .disclaimer {
+  font-size: 0.75rem;
+  color: #888;
+  text-align: center;
+  max-width: 480px;
+  margin: 3cap auto 0;
+  line-height: 1.5;
+}

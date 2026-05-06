@@ -170,6 +170,11 @@
     <a href="/history" class="nav-link">View your past stories →</a>
   </nav>
 
+  <p class="disclaimer">
+  DISCLAIMER: Eldritch Inbox is a generative AI-powered tool intended for creative inspiration only.
+  Generative AI models are not infallible, so content may be inaccurate or unexpected. Always review outputs before use.
+  </p>
+
   <footer>Eldritch Inbox &nbsp;·&nbsp; 2026 </footer>
 
 </div>
@@ -196,9 +201,17 @@
   ['dragover','dragenter'].forEach(e => uploadArea.addEventListener(e, ev => {
     ev.preventDefault(); uploadArea.classList.add('dragover');
   }));
-  ['dragleave','drop'].forEach(e => uploadArea.addEventListener(e, () => {
+  ['dragleave','drop'].forEach(e => uploadArea.addEventListener('drop', ev => {
+    ev.preventDefault();
     uploadArea.classList.remove('dragover');
-  }));
+    const file = ev.dataTransfer.files[0];
+    if (file) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      fileInput.files = dt.files;
+      fileInput.dispatchEvent(new Event('change'));
+    }
+}));
 
   /* Keyboard trigger for upload area */
   uploadArea.addEventListener('keydown', e => {
