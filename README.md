@@ -61,10 +61,10 @@ Create a `.env` file in the project root with the following:
  
 ```
 N8N_WEBHOOK_URL=your_n8n_webhook_url
-EMAIL_SECRET=your_hmac_secret
+EMAIL_HASH_SECRET=your_hmac_secret
 ```
 
-> The `EMAIL_SECRET` must match the secret used in the n8n hashing code node exactly.
+> The `EMAIL_HASH_SECRET` must match the secret used in the n8n hashing code node exactly.
 
 ### Running Locally
  
